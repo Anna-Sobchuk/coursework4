@@ -1,55 +1,79 @@
 #include <iostream>
-#include <experimental/filesystem>
 #include <asio.hpp>
+#include <thread>
+#include <vector>
+#include <chrono>
+#include <condition_variable>
 
-namespace fs = std::experimental::filesystem;
 
-class Server {
-private:
-    asio::io_service ioService;
-    asio::ip::tcp::acceptor acceptor;
-    asio::ip::tcp::socket socket;
+std::vector<std::string> ReceiveWords(asio::ip::tcp::socket& socket) {
 
-public:
-    Server() : acceptor(ioService, asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), 5001)), socket(ioService) {}
+    // Read the size of the vector
+    uint32_t vectorSize;
+    asio::read(socket, asio::buffer(&vectorSize, sizeof(vectorSize)));
 
-    void Start() {
-        acceptor.listen();
-        std::cout << "Server started at port 5001" << std::endl;
+    // Read the vector of words
+    std::vector<std::string> words;
+    for (uint32_t i = 0; i < vectorSize; ++i) {
+        uint32_t wordSize;
+        asio::read(socket, asio::buffer(&wordSize, sizeof(wordSize)));
+
+        std::vector<char> buffer(wordSize);
+        asio::read(socket, asio::buffer(buffer));
+
+        std::string word(buffer.begin(), buffer.end());
+        words.push_back(word);
+    }
+
+    return words;
+}
+
+void HandleClient(asio::ip::tcp::socket socket) {
+    try {
+        std::cout << "Client thread started!" << std::endl;
 
         while (true) {
-            acceptor.accept(socket);
-            std::cout << "New client was connected" << std::endl;
+            std::vector<std::string> words = ReceiveWords(socket);
 
-            // Start a new thread or use async to handle the client
-            HandleClient(std::move(socket));
+            // Process the received words as needed
+            std::cout << "Received words: ";
+            for (const auto& word : words) {
+                std::cout << word << " ";
+            }
+            std::cout << std::endl;
+
+            // Now, as the words are received, start an index search itself
         }
     }
-
-    void HandleClient(asio::ip::tcp::socket socket) {
-        try {
-            asio::streambuf buffer;
-            asio::read_until(socket, buffer, '\n');
-            std::istream input_stream(&buffer);
-            std::string message;
-            std::getline(input_stream, message);
-
-            // Process the received message
-            std::cout << "Received message from client: " << message << std::endl;
-
-            // You can send a response back to the client if needed
-            asio::write(socket, asio::buffer("Hello from server!\n"));
-        }
-        catch (const std::exception& e) {
-            std::cerr << "Error handling client: " << e.what() << std::endl;
-        }
+    catch (const std::exception& e) {
+        std::cerr << "Error handling client: " << e.what() << std::endl;
     }
-};
 
-int main(int argc, char* argv[]) {
+}
 
-    Server server;
-    server.Start();
+
+int main() {
+    asio::io_service ioService;
+    asio::ip::tcp::acceptor acceptor(ioService, asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), 5001));
+
+    std::cout << "Server started at port 5001" << std::endl;
+    std::vector<std::thread> threads; // Keep track of the threads
+
+    while (true) {
+        asio::ip::tcp::socket socket(ioService);
+        acceptor.listen();
+        acceptor.accept(socket);
+        std::cout << "New client was connected" << std::endl;
+
+        // Start a new thread for each client
+        threads.emplace_back(HandleClient, std::move(socket));
+
+    }
+
+    // Wait for all threads to finish
+    for (auto& thread : threads) {
+        thread.join();
+    }
 
     return 0;
 }

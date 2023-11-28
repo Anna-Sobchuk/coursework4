@@ -6,7 +6,7 @@
 #include <algorithm>
 
 std::vector<std::string> GetWords() {
-    std::cout << "Please enter the words you want to find: ";
+    std::cout << "Please enter the words you want to find:" << std::endl;
     std::string input;
     std::getline(std::cin, input);
 
@@ -31,8 +31,9 @@ bool WantToBreak() {
     std::string input;
     std::getline(std::cin, input);
 
-    return input != "yes";
+    return input == "yes";
 }
+
 
 int main() {
     try {
@@ -42,12 +43,21 @@ int main() {
         socket.connect(asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), 5001));
         std::cout << "Connected to server!" << std::endl;
 
-        //Read the words
         do {
             std::vector<std::string> words = GetWords();
-            //send them
-        } while (WantToBreak());
 
+            // Send the size of the vector
+            uint32_t vectorSize = static_cast<uint32_t>(words.size());
+            asio::write(socket, asio::buffer(&vectorSize, sizeof(vectorSize)));
+
+            // Send the vector of words
+            for (const auto& word : words) {
+                uint32_t wordSize = static_cast<uint32_t>(word.size());
+                asio::write(socket, asio::buffer(&wordSize, sizeof(wordSize)));
+                asio::write(socket, asio::buffer(word.data(), word.size()));
+            }
+
+        } while (!WantToBreak());
 
     }
     catch (const std::exception& e) {
