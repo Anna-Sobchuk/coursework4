@@ -26,6 +26,14 @@ std::vector<std::string> GetWords() {
     return words;
 }
 
+bool WantToBreak() {
+    std::cout << "If you want to finish, write to the console 'yes'. If not press enter" << std::endl;
+    std::string input;
+    std::getline(std::cin, input);
+
+    return input != "yes";
+}
+
 int main() {
     try {
         asio::io_context io_context;
@@ -35,10 +43,11 @@ int main() {
         std::cout << "Connected to server!" << std::endl;
 
         //Read the words
-        std::vector<std::string> words = GetWords();
-        for (const auto& word : words) {
-            std::cout << " " << word;
-        }
+        do {
+            std::vector<std::string> words = GetWords();
+            //send them
+        } while (WantToBreak());
+
 
     }
     catch (const std::exception& e) {
