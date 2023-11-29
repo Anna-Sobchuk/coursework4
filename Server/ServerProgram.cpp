@@ -2,38 +2,44 @@
 #include <asio.hpp>
 #include <thread>
 #include <vector>
-#include <chrono>
-#include <condition_variable>
 
+namespace ServerMessager {
+    std::vector<std::string> receiveWords(asio::ip::tcp::socket& socket) {
+        // Read the size of the vector
+        uint32_t vectorSize;
+        asio::read(socket, asio::buffer(&vectorSize, sizeof(vectorSize)));
 
-std::vector<std::string> ReceiveWords(asio::ip::tcp::socket& socket) {
+        // Read the vector of words
+        std::vector<std::string> words;
+        for (uint32_t i = 0; i < vectorSize; ++i) {
+            uint32_t wordSize;
+            asio::read(socket, asio::buffer(&wordSize, sizeof(wordSize)));
 
-    // Read the size of the vector
-    uint32_t vectorSize;
-    asio::read(socket, asio::buffer(&vectorSize, sizeof(vectorSize)));
+            std::vector<char> buffer(wordSize);
+            asio::read(socket, asio::buffer(buffer));
 
-    // Read the vector of words
-    std::vector<std::string> words;
-    for (uint32_t i = 0; i < vectorSize; ++i) {
-        uint32_t wordSize;
-        asio::read(socket, asio::buffer(&wordSize, sizeof(wordSize)));
-
-        std::vector<char> buffer(wordSize);
-        asio::read(socket, asio::buffer(buffer));
-
-        std::string word(buffer.begin(), buffer.end());
-        words.push_back(word);
+            std::string word(buffer.begin(), buffer.end());
+            words.push_back(word);
+        }
+        return words;
     }
 
-    return words;
+    void sendMessage(asio::ip::tcp::socket& socket, const std::string& message) {
+        // Send the size of the message
+        uint32_t messageSize = static_cast<uint32_t>(message.size());
+        asio::write(socket, asio::buffer(&messageSize, sizeof(messageSize)));
+
+        // Send the message
+        asio::write(socket, asio::buffer(message.data(), message.size()));
+    }
 }
 
-void HandleClient(asio::ip::tcp::socket socket) {
+void handleClient(asio::ip::tcp::socket socket) {
     try {
         std::cout << "Client thread started!" << std::endl;
 
         while (true) {
-            std::vector<std::string> words = ReceiveWords(socket);
+            std::vector<std::string> words = ServerMessager::receiveWords(socket);
 
             // Process the received words as needed
             std::cout << "Received words: ";
@@ -42,15 +48,16 @@ void HandleClient(asio::ip::tcp::socket socket) {
             }
             std::cout << std::endl;
 
-            // Now, as the words are received, start an index search itself
+            // Indexing
+
+            // Send a response back to the client
+            std::string responseMessage = "Hey, the words were found!";
+            ServerMessager::sendMessage(socket, responseMessage);
         }
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error handling client: " << e.what() << std::endl;
     }
-
 }
-
 
 int main() {
     asio::io_service ioService;
@@ -66,8 +73,7 @@ int main() {
         std::cout << "New client was connected" << std::endl;
 
         // Start a new thread for each client
-        threads.emplace_back(HandleClient, std::move(socket));
-
+        threads.emplace_back(handleClient, std::move(socket));
     }
 
     // Wait for all threads to finish

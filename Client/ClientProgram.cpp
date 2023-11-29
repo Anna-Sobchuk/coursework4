@@ -5,15 +5,35 @@
 #include <vector>
 #include <algorithm>
 
-asio::ip::tcp::socket connectToServer(const std::string& server_ip, int server_port) {
-    asio::io_context io_context;
-    asio::ip::tcp::socket socket(io_context);
+namespace ClientMessager {
+    void Send(asio::ip::tcp::socket& socket, const std::vector<std::string>& words) {
+        try {
+            // Send the size of the vector
+            uint32_t vectorSize = static_cast<uint32_t>(words.size());
+            asio::write(socket, asio::buffer(&vectorSize, sizeof(vectorSize)));
 
-    asio::ip::tcp::endpoint endpoint(asio::ip::address::from_string(server_ip), server_port);
-    socket.connect(endpoint);
+            // Send the vector of words
+            for (const auto& word : words) {
+                uint32_t wordSize = static_cast<uint32_t>(word.size());
+                asio::write(socket, asio::buffer(&wordSize, sizeof(wordSize)));
+                asio::write(socket, asio::buffer(word.data(), word.size()));
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error sending message: " << e.what() << std::endl;
+        }
+    }
 
-    std::cout << "Connected to server!" << std::endl;
-    return socket;
+    std::string Receive(asio::ip::tcp::socket& socket) {
+        // Read the size of the message
+        uint32_t messageSize;
+        asio::read(socket, asio::buffer(&messageSize, sizeof(messageSize)));
+
+        // Read the message
+        std::vector<char> buffer(messageSize);
+        asio::read(socket, asio::buffer(buffer));
+
+        return std::string(buffer.begin(), buffer.end());
+    }
 }
 
 std::vector<std::string> GetWords() {
@@ -37,46 +57,36 @@ std::vector<std::string> GetWords() {
     return words;
 }
 
-void sendMessage(asio::ip::tcp::socket& socket, const std::vector<std::string>& words) {
-    try {
-        // Send the size of the vector
-        uint32_t vectorSize = static_cast<uint32_t>(words.size());
-        asio::write(socket, asio::buffer(&vectorSize, sizeof(vectorSize)));
-
-        // Send the vector of words
-        for (const auto& word : words) {
-            uint32_t wordSize = static_cast<uint32_t>(word.size());
-            asio::write(socket, asio::buffer(&wordSize, sizeof(wordSize)));
-            asio::write(socket, asio::buffer(word.data(), word.size()));
-        }
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error sending message: " << e.what() << std::endl;
-    }
-}
-
-bool WantToBreak() {
-    std::cout << "If you want to finish, write to the console 'yes'. If not press enter" << std::endl;
+bool WantToContinue() {
+    std::cout << "If you want to finish, write to the console 'yes'. If not, press enter." << std::endl;
     std::string input;
     std::getline(std::cin, input);
 
-    return input == "yes";
+    return input != "yes";
 }
 
-
 int main() {
-
     try {
-        asio::ip::tcp::socket socket = connectToServer("127.0.0.1", 5001);
+        asio::io_context io_context;
+        asio::ip::tcp::socket socket(io_context);
+
+        asio::ip::tcp::endpoint endpoint(asio::ip::address::from_string("127.0.0.1"), 5001);
+        socket.connect(endpoint);
+
+        std::cout << "Connected to server!" << std::endl;
 
         do {
             std::vector<std::string> words = GetWords();
-            sendMessage(socket, words);
-            //Receive message
-        } while (!WantToBreak());
+            ClientMessager::Send(socket, words);
 
-    }
-    catch (const std::exception& e) {
+            auto answer = ClientMessager::Receive(socket);
+            std::cout << "Server response: " << answer << std::endl;
+
+        } while (WantToContinue());
+
+        //send last message about disconnection
+
+    } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
 
