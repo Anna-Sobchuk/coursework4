@@ -65,6 +65,11 @@ bool WantToContinue() {
     return input != "yes";
 }
 
+void SendDisconnectMessage(asio::ip::tcp::socket& socket) {
+    // Send a special disconnect message
+    ClientMessager::Send(socket, { "DISCONNECT" });
+}
+
 int main() {
     try {
         asio::io_context io_context;
@@ -85,6 +90,7 @@ int main() {
         } while (WantToContinue());
 
         //send last message about disconnection
+        SendDisconnectMessage(socket);
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
