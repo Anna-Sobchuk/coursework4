@@ -31,10 +31,10 @@ set(
 add_executable(Client Client/ClientProgram.cpp)
 target_link_libraries(Client PRIVATE ws2_32)
 
-add_executable(Server Server/ServerProgram.cpp)
+add_executable(Server
+        Server/ServerProgram.cpp
+        Index/IndexProgram.cpp
+        )
 target_link_libraries(Server PRIVATE ws2_32)
-
-add_executable(Index Index/IndexProgram.cpp)
-target_link_libraries(Index PRIVATE ws2_32)
 
 set(CMAKE_CXX_STANDARD_LIBRARIES "-lstdc++fs ${CMAKE_CXX_STANDARD_LIBRARIES}")

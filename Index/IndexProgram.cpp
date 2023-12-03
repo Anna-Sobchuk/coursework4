@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include "IndexProgram.h"
 
 namespace FileManager {
     // find all the files in the dir
@@ -74,7 +75,8 @@ namespace Index {
 }
 
 namespace Indexer {
-    void RunIndexer(const std::string& rootDirectory, int startFile, int endFile, const std::vector<std::string>& wordsToFind) {
+    std::unordered_map<std::string, std::unordered_set<std::string>>
+    RunIndexer(const std::string& rootDirectory, int startFile, int endFile, const std::vector<std::string>& wordsToFind) {
         //find all files in dir
         std::vector<std::string> files = FileManager::GetAllFiles(rootDirectory);
 
@@ -87,29 +89,14 @@ namespace Indexer {
         //add words from the files to dictionary
         Index::IndexFiles(files);
 
+        std::unordered_map<std::string, std::unordered_set<std::string>> wordFilesMap;
+
         for (const auto& word : wordsToFind) {
-            //find if searched word is in the dictionary
             auto wordFiles = Index::FindFilesForWord(word);
-            if (!wordFiles.empty()) {
-                std::cout << "Word '" << word << "' found in files:\n";
-                for (const auto& file : wordFiles) {
-                    std::cout << file << std::endl;
-                }
-                std::cout << "\n";
-            } else{
-                std::cout << "Word '" << word << "' not found in files:\n";
-                std::cout << "\n";
-            }
+            wordFilesMap[word] = wordFiles;
         }
+
+        return wordFilesMap;
     }
 }
 
-int main() {
-    int StartOfFile = 0;
-    int EndOfFile = 10;
-    Index::Dictionary index;
-    std::vector<std::string> WordsToFind = {"film", "something", "i", "great", "banana", "are"};
-    std::string rootDirectory = "C://Users//Anna//coursework4//mdb//train//neg";
-    Indexer::RunIndexer(rootDirectory, StartOfFile, EndOfFile, WordsToFind);
-    return 0;
-}

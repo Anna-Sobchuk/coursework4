@@ -2,6 +2,9 @@
 #include <asio.hpp>
 #include <thread>
 #include <vector>
+#include <unordered_set>
+#include "Index/IndexProgram.h"
+
 
 std::vector<std::string> receiveWords(asio::ip::tcp::socket& socket) {
     // Read the size of the vector
@@ -24,14 +27,30 @@ std::vector<std::string> receiveWords(asio::ip::tcp::socket& socket) {
     return words;
 }
 
-void sendMessage(asio::ip::tcp::socket& socket, const std::string& message) {
-    // Send the size of the message
-    uint32_t messageSize = static_cast<uint32_t>(message.size());
-    asio::write(socket, asio::buffer(&messageSize, sizeof(messageSize)));
+void sendMessage(asio::ip::tcp::socket& socket, const std::unordered_map<std::string, std::unordered_set<std::string>>& dictionary) {
+    // Send the size of the dictionary
+    uint32_t dictionarySize = static_cast<uint32_t>(dictionary.size());
+    asio::write(socket, asio::buffer(&dictionarySize, sizeof(dictionarySize)));
 
-    // Send the message
-    asio::write(socket, asio::buffer(message.data(), message.size()));
+    // Send the dictionary of word:files
+    for (const auto& entry : dictionary) {
+        std::string word = entry.first;
+        uint32_t wordSize = static_cast<uint32_t>(word.size());
+        asio::write(socket, asio::buffer(&wordSize, sizeof(wordSize)));
+        asio::write(socket, asio::buffer(word.data(), word.size()));
+
+        uint32_t fileListSize = static_cast<uint32_t>(entry.second.size());
+        asio::write(socket, asio::buffer(&fileListSize, sizeof(fileListSize)));
+
+        for (const auto& file : entry.second) {
+            std::string fileEntry = file;
+            uint32_t fileEntrySize = static_cast<uint32_t>(fileEntry.size());
+            asio::write(socket, asio::buffer(&fileEntrySize, sizeof(fileEntrySize)));
+            asio::write(socket, asio::buffer(fileEntry.data(), fileEntry.size()));
+        }
+    }
 }
+
 
 void handleClient(asio::ip::tcp::socket socket) {
     try {
@@ -40,14 +59,11 @@ void handleClient(asio::ip::tcp::socket socket) {
         while (true) {
             std::vector<std::string> words = receiveWords(socket);
 
-            // Process the received words as needed
-            std::cout << "Received words: ";
-            for (const auto& word : words) {
-                std::cout << word << " ";
-            }
-            std::cout << std::endl;
-
-            // Indexing
+            int StartOfFile = 0;
+            int EndOfFile = 10;
+            std::string rootDirectory = "C://Users//Anna//coursework4//mdb//train//neg";
+            // Run indexing on the words and get the updated dictionary
+            Index::Dictionary dictionary = Indexer::RunIndexer(rootDirectory, StartOfFile, EndOfFile, words);
 
             // Check for disconnect message
             if (words.size() == 1 && words[0] == "DISCONNECT") {
@@ -56,8 +72,7 @@ void handleClient(asio::ip::tcp::socket socket) {
             }
 
             // Send a response back to the client
-            std::string responseMessage = "Hey, the words were found!";
-            sendMessage(socket, responseMessage);
+            sendMessage(socket, dictionary);
         }
     } catch (const asio::system_error& e) {
         if (e.code() != asio::error::eof) {

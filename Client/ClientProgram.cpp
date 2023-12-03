@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace ClientMessager {
     void Send(asio::ip::tcp::socket& socket, const std::vector<std::string>& words) {
@@ -23,16 +25,42 @@ namespace ClientMessager {
         }
     }
 
-    std::string Receive(asio::ip::tcp::socket& socket) {
-        // Read the size of the message
-        uint32_t messageSize;
-        asio::read(socket, asio::buffer(&messageSize, sizeof(messageSize)));
+    std::unordered_map<std::string, std::unordered_set<std::string>> ReceiveDictionary(asio::ip::tcp::socket& socket) {
+        // Read the size of the dictionary
+        uint32_t dictionarySize;
+        asio::read(socket, asio::buffer(&dictionarySize, sizeof(dictionarySize)));
 
-        // Read the message
-        std::vector<char> buffer(messageSize);
-        asio::read(socket, asio::buffer(buffer));
+        std::unordered_map<std::string, std::unordered_set<std::string>> dictionary;
 
-        return std::string(buffer.begin(), buffer.end());
+        // Read the dictionary of word:files
+        for (uint32_t i = 0; i < dictionarySize; ++i) {
+            uint32_t wordSize;
+            asio::read(socket, asio::buffer(&wordSize, sizeof(wordSize)));
+
+            std::vector<char> buffer(wordSize);
+            asio::read(socket, asio::buffer(buffer));
+
+            std::string word(buffer.begin(), buffer.end());
+
+            uint32_t fileListSize;
+            asio::read(socket, asio::buffer(&fileListSize, sizeof(fileListSize)));
+
+            std::unordered_set<std::string> files;
+            for (uint32_t j = 0; j < fileListSize; ++j) {
+                uint32_t fileEntrySize;
+                asio::read(socket, asio::buffer(&fileEntrySize, sizeof(fileEntrySize)));
+
+                std::vector<char> fileBuffer(fileEntrySize);
+                asio::read(socket, asio::buffer(fileBuffer));
+
+                std::string file(fileBuffer.begin(), fileBuffer.end());
+                files.insert(file);
+            }
+
+            dictionary[word] = files;
+        }
+
+        return dictionary;
     }
 }
 
@@ -84,9 +112,16 @@ int main() {
             std::vector<std::string> words = GetWords();
             ClientMessager::Send(socket, words);
 
-            auto answer = ClientMessager::Receive(socket);
-            std::cout << "Server response: " << answer << std::endl;
+            auto dictionary = ClientMessager::ReceiveDictionary(socket);
 
+            std::cout << "Server response:\n" << std::endl;
+            for (const auto& entry : dictionary) {
+                std::cout << "Word: " << entry.first << "\nFiles: \n";
+                for (const auto& file : entry.second) {
+                    std::cout << file << std::endl;
+                }
+                std::cout << std::endl;
+            }
         } while (WantToContinue());
 
         //send last message about disconnection
