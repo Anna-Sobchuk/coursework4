@@ -1,80 +1,115 @@
-#include <fstream>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
-#include <future>
 #include <mutex>
 #include <filesystem>
-#include <regex>
-#include <string>
+#include <fstream>
+#include <sstream>
+
+namespace FileManager {
+    // find all the files in the dir
+    std::vector<std::string> GetAllFiles(const std::string& root) {
+        std::vector<std::string> files;
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
+            files.push_back(entry.path().string());
+        }
+        return files;
+    }
+}
 
 namespace Index {
     using Dictionary = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
-    auto& GetDictionaryUnsafe() {
+    auto &GetDictionaryUnsafe() {
         static Dictionary dictionary;
         return dictionary;
     }
 
-    void Add(std::string word, const std::string& file) {
-        for (auto& ch : word) {
-            ch = std::tolower(static_cast<unsigned char>(ch));
-        }
+    //add word into dictionary
+    void Add(const std::string& word, const std::string& file) {
+        std::string lowercaseWord = word;
+        std::transform(lowercaseWord.begin(), lowercaseWord.end(), lowercaseWord.begin(), ::tolower);
 
         auto& dictionary = GetDictionaryUnsafe();
-        dictionary[word].insert(file);
+        dictionary[lowercaseWord].insert(file);
+    }
+
+    //make sure word from file is lowercase and cleaned
+    void IndexFiles(const std::vector<std::string>& files) {
+        for (const auto& file : files) {
+            std::ifstream ifs(file);
+            std::stringstream buffer;
+            buffer << ifs.rdbuf();
+            std::string text = buffer.str();
+            ifs.close();
+
+            std::vector<std::string> words;
+            std::stringstream ss(text);
+            std::string word;
+
+            while (ss >> word) {
+                word.erase(std::remove_if(word.begin(), word.end(), [](char c) { return !std::isalnum(c); }), word.end());
+                std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+                if (!word.empty()) {
+                    Add(word, file);
+                }
+            }
+        }
+    }
+
+    //search for word in dictionary
+    std::unordered_set<std::string> FindFilesForWord(const std::string& word) {
+        std::unordered_set<std::string> emptySet;
+
+        auto& dictionary = GetDictionaryUnsafe();
+        auto it = dictionary.find(word);
+        if (it != dictionary.end()) {
+            return it->second;
+        } else {
+            return emptySet;
+        }
     }
 }
 
 namespace Indexer {
-    void RunIndexer(const std::string& rootDirectory, int numberOfThreads, Index::Dictionary& index, int startFile, int endFile) {
-        std::vector<std::string> files;
+    void RunIndexer(const std::string& rootDirectory, int startFile, int endFile, const std::vector<std::string>& wordsToFind) {
+        //find all files in dir
+        std::vector<std::string> files = FileManager::GetAllFiles(rootDirectory);
 
-        // Create file names from startFile to endFile
-        for (int i = startFile; i <= endFile; ++i) {
-            files.push_back(rootDirectory + "/file" + std::to_string(i) + ".txt");
+        //choose only the files needed
+        if (startFile >= 0 && endFile < files.size()) {
+            files.erase(files.begin() + endFile + 1, files.end());
+            files.erase(files.begin(), files.begin() + startFile);
         }
 
-        // Print the files being processed
-        std::cout << "Processing files:" << std::endl;
-        for (const auto& file : files) {
-            std::cout << file << std::endl;
-        }
+        //add words from the files to dictionary
+        Index::IndexFiles(files);
 
-        // Placeholder: Print words and files, replace with actual indexing logic
-        std::cout << "Running indexer..." << std::endl;
-        for (const auto& file : files) {
-            std::ifstream ifs(file);
-            std::string word;
-            while (ifs >> word) {
-                Index::Add(word, file);
-                // Print the word and file being indexed
-                std::cout << "Indexed word: " << word << " from file: " << file << std::endl;
+        for (const auto& word : wordsToFind) {
+            //find if searched word is in the dictionary
+            auto wordFiles = Index::FindFilesForWord(word);
+            if (!wordFiles.empty()) {
+                std::cout << "Word '" << word << "' found in files:\n";
+                for (const auto& file : wordFiles) {
+                    std::cout << file << std::endl;
+                }
+                std::cout << "\n";
+            } else{
+                std::cout << "Word '" << word << "' not found in files:\n";
+                std::cout << "\n";
             }
-            ifs.close();
         }
-        std::cout << "Indexing completed." << std::endl;
     }
 }
 
 int main() {
-    int startFile = 11000;
-    int endFile = 11010;
-
+    int StartOfFile = 0;
+    int EndOfFile = 10;
     Index::Dictionary index;
-    Indexer::RunIndexer("aclImdb/train/neg", 4, index, startFile, endFile);
-
-    // Print the contents of the index
-    std::cout << "Index contents:" << std::endl;
-    for (const auto& [word, files] : index) {
-        std::cout << "Word: " << word << " Files: ";
-        for (const auto& file : files) {
-            std::cout << file << " ";
-        }
-        std::cout << std::endl;
-    }
-
+    std::vector<std::string> WordsToFind = {"film", "something", "i", "great", "banana", "are"};
+    std::string rootDirectory = "C://Users//Anna//coursework4//mdb//train//neg";
+    Indexer::RunIndexer(rootDirectory, StartOfFile, EndOfFile, WordsToFind);
     return 0;
 }
