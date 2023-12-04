@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_set>
 #include "Index/IndexProgram.h"
+std::atomic<bool> shouldStop(false); // Global variable to signal server shutdown
 
 
 std::vector<std::string> receiveWords(asio::ip::tcp::socket& socket) {
@@ -88,7 +89,10 @@ int main() {
     std::cout << "Server started at port 5001" << std::endl;
     std::vector<std::thread> threads; // Keep track of the threads
 
-    while (true) {
+    const int MAX_CLIENTS = 2; // Define maximum number of clients
+    int clientCount = 0;
+
+    while (!shouldStop) {
         asio::ip::tcp::socket socket(ioService);
         acceptor.listen();
         acceptor.accept(socket);
@@ -96,6 +100,11 @@ int main() {
 
         // Start a new thread for each client
         threads.emplace_back(handleClient, std::move(socket));
+
+        ++clientCount;
+        if (clientCount >= MAX_CLIENTS) {
+            shouldStop = true; // Reached maximum clients, set the termination condition
+        }
     }
 
     // Wait for all threads to finish
