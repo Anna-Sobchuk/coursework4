@@ -1,0 +1,11 @@
+# ninja log v5
+6	3206	7226937027029141	CMakeFiles/coursework4.dir/Client/ClientProgram.cpp.obj	b445980e7b1bdca8
+1	263	7233680434563652	build.ninja	2fe08c6ebd3382b2
+3	1302	7232804350645931	CMakeFiles/Index.dir/Index/IndexProgram.cpp.obj	3399af87df71e62c
+3206	3533	7226937030199973	coursework4.exe	44c487978cfca6c5
+10	3983	7233262010169391	CMakeFiles/Server.dir/Server/ServerProgram.cpp.obj	ae0694c8561ef0c2
+6	9947	7233270169956721	CMakeFiles/Client.dir/Client/ClientProgram.cpp.obj	3ee04671d345b9a0
+1872	2629	7233265760873420	Server.exe	fb9166c8e03ded4
+9948	12993	7233270200486897	Client.exe	6bba2664d3e0f76d
+1303	1511	7232804352703092	Index.exe	39d92b11de148ff0
+5	1871	7233265753319224	CMakeFiles/Server.dir/Index/IndexProgram.cpp.obj	9d4bfd2f54e282a3
