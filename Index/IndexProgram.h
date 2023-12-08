@@ -9,16 +9,16 @@ namespace Index {
     using Dictionary = std::unordered_map<std::string, std::unordered_set<std::string>>;
     auto &GetDictionaryUnsafe();
     void Add(const std::string& word, const std::string& file);
-    void IndexFiles(const std::vector<std::string>& files);
+    void IndexFilesInRange(const std::vector<std::string>& files);
     std::unordered_set<std::string> FindFilesForWord(const std::string& word);
 }
 
 namespace Indexer {
-    std::unordered_map<std::string, std::unordered_set<std::string>>
-    RunIndexer(const std::string& rootDirectory, int startFile, int endFile, const std::vector<std::string>& wordsToFind);
+    std::vector<std::string>
+    RunIndexer(const std::string& rootDirectory, const std::vector<std::string>& wordsToFind, int numThreads = 16);
 }
 
 namespace FileManager {
-    std::vector<std::string> GetAllFiles(const std::string &root);
+    std::vector<std::string> GetAllFiles(const std::string &root, int numThreads = 16);
 }
 #endif //COURSEWORK4_INDEXPROGRAM_H

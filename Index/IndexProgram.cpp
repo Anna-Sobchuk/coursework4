@@ -6,16 +6,39 @@
 #include <mutex>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
-#include "IndexProgram.h"
+#include <thread>
+#include <atomic>
 
 namespace FileManager {
-    // find all the files in the dir
-    std::vector<std::string> GetAllFiles(const std::string& root) {
+    std::mutex fileMutex;
+
+    std::vector<std::string> GetAllFiles(const std::string& root, int numThreads = 16) {
         std::vector<std::string> files;
+
+        std::vector<std::vector<std::string>> fileChunks(numThreads);
+
+        // Fill file chunks for parallel processing
+        int index = 0;
         for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
-            files.push_back(entry.path().string());
+            fileChunks[index % numThreads].push_back(entry.path().string());
+            ++index;
         }
+
+        // Process file chunks in parallel
+        std::vector<std::thread> threads;
+        for (int i = 0; i < numThreads; ++i) {
+            threads.emplace_back([&, i]() {
+                for (const auto& file : fileChunks[i]) {
+                    std::lock_guard<std::mutex> lock(fileMutex);
+                    files.push_back(file);
+                }
+            });
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
         return files;
     }
 }
@@ -23,12 +46,11 @@ namespace FileManager {
 namespace Index {
     using Dictionary = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
-    auto &GetDictionaryUnsafe() {
+    auto& GetDictionaryUnsafe() {
         static Dictionary dictionary;
         return dictionary;
     }
 
-    //add word into dictionary
     void Add(const std::string& word, const std::string& file) {
         std::string lowercaseWord = word;
         std::transform(lowercaseWord.begin(), lowercaseWord.end(), lowercaseWord.begin(), ::tolower);
@@ -37,8 +59,21 @@ namespace Index {
         dictionary[lowercaseWord].insert(file);
     }
 
-    //make sure word from file is lowercase and cleaned
-    void IndexFiles(const std::vector<std::string>& files) {
+
+    std::unordered_set<std::string> FindFilesForWord(const std::string& word) {
+        std::unordered_set<std::string> emptySet;
+
+        auto& dictionary = GetDictionaryUnsafe();
+        auto it = dictionary.find(word);
+        if (it != dictionary.end()) {
+            return it->second;
+        } else {
+            return emptySet;
+        }
+    }
+    std::mutex mutex;
+
+    void IndexFilesInRange(const std::vector<std::string>& files) {
         for (const auto& file : files) {
             std::ifstream ifs(file);
             std::stringstream buffer;
@@ -54,49 +89,74 @@ namespace Index {
                 word.erase(std::remove_if(word.begin(), word.end(), [](char c) { return !std::isalnum(c); }), word.end());
                 std::transform(word.begin(), word.end(), word.begin(), ::tolower);
                 if (!word.empty()) {
-                    Add(word, file);
+                    std::lock_guard<std::mutex> lock(mutex);
+                    Index::Add(word, file);
                 }
             }
         }
     }
 
-    //search for word in dictionary
-    std::unordered_set<std::string> FindFilesForWord(const std::string& word) {
-        std::unordered_set<std::string> emptySet;
+    std::vector<std::string> FindFilesContainingAllWords(const std::vector<std::string>& files,
+                                                         const std::vector<std::string>& wordsToFind) {
+        std::vector<std::string> filesContainingAllWords;
 
-        auto& dictionary = GetDictionaryUnsafe();
-        auto it = dictionary.find(word);
-        if (it != dictionary.end()) {
-            return it->second;
-        } else {
-            return emptySet;
+        for (const auto& file : files) {
+            bool foundAllWords = true;
+
+            for (const auto& word : wordsToFind) {
+                auto wordFiles = Index::FindFilesForWord(word);
+                if (wordFiles.find(file) == wordFiles.end()) {
+                    foundAllWords = false;
+                    break;
+                }
+            }
+
+            if (foundAllWords) {
+                filesContainingAllWords.push_back(file);
+            }
         }
+
+        return filesContainingAllWords;
     }
 }
 
 namespace Indexer {
-    std::unordered_map<std::string, std::unordered_set<std::string>>
-    RunIndexer(const std::string& rootDirectory, int startFile, int endFile, const std::vector<std::string>& wordsToFind) {
-        //find all files in dir
-        std::vector<std::string> files = FileManager::GetAllFiles(rootDirectory);
 
-        //choose only the files needed
-        if (startFile >= 0 && endFile < files.size()) {
-            files.erase(files.begin() + endFile + 1, files.end());
-            files.erase(files.begin(), files.begin() + startFile);
+    std::vector<std::string>
+    RunIndexer(const std::string& rootDirectory,  const std::vector<std::string>& wordsToFind, int numThreads = 16) {
+        // Find all files in the directory
+        std::vector<std::string> files = FileManager::GetAllFiles(rootDirectory, numThreads);
+
+
+        // Divide files into chunks for parallel processing
+        std::vector<std::vector<std::string>> fileChunks(numThreads);
+        for (size_t i = 0; i < files.size(); ++i) {
+            fileChunks[i % numThreads].push_back(files[i]);
         }
 
-        //add words from the files to dictionary
-        Index::IndexFiles(files);
+        // Create threads for indexing
+        std::vector<std::thread> threads;
+        for (int i = 0; i < numThreads; ++i) {
+            threads.emplace_back([&, i]() {
+                Index::IndexFilesInRange(fileChunks[i]);
+            });
+        }
 
+        // Wait for all threads to finish
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        // Create a map to store word to file mappings
         std::unordered_map<std::string, std::unordered_set<std::string>> wordFilesMap;
-
         for (const auto& word : wordsToFind) {
             auto wordFiles = Index::FindFilesForWord(word);
             wordFilesMap[word] = wordFiles;
         }
 
-        return wordFilesMap;
+        std::vector<std::string> filesContainingAllWords = Index::FindFilesContainingAllWords(files, wordsToFind);
+
+
+        return filesContainingAllWords;
     }
 }
-
