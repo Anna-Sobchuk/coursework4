@@ -46,7 +46,7 @@ namespace FileManager {
 namespace Index {
     using Dictionary = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
-    auto& GetDictionaryUnsafe() {
+    auto& GetDictionary() {
         static Dictionary dictionary;
         return dictionary;
     }
@@ -55,7 +55,7 @@ namespace Index {
         std::string lowercaseWord = word;
         std::transform(lowercaseWord.begin(), lowercaseWord.end(), lowercaseWord.begin(), ::tolower);
 
-        auto& dictionary = GetDictionaryUnsafe();
+        auto& dictionary = GetDictionary();
         dictionary[lowercaseWord].insert(file);
     }
 
@@ -63,7 +63,7 @@ namespace Index {
     std::unordered_set<std::string> FindFilesForWord(const std::string& word) {
         std::unordered_set<std::string> emptySet;
 
-        auto& dictionary = GetDictionaryUnsafe();
+        auto& dictionary = GetDictionary();
         auto it = dictionary.find(word);
         if (it != dictionary.end()) {
             return it->second;

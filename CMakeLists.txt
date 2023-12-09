@@ -37,4 +37,9 @@ add_executable(Server
         )
 target_link_libraries(Server PRIVATE ws2_32)
 
+add_executable(TimeAnalysis
+        Index/IndexProgram.cpp
+        TimeAnalysis.cpp
+        )
+
 set(CMAKE_CXX_STANDARD_LIBRARIES "-lstdc++fs ${CMAKE_CXX_STANDARD_LIBRARIES}")

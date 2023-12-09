@@ -41,6 +41,47 @@ include CMakeFiles/rules.ninja
 
 cmake_ninja_workdir = C$:/Users/Anna/coursework4/cmake-build-debug/
 # =============================================================================
+# Object build statements for EXECUTABLE target TimeAnalysis
+
+
+#############################################
+# Order-only phony target for TimeAnalysis
+
+build cmake_object_order_depends_target_TimeAnalysis: phony || CMakeFiles/TimeAnalysis.dir
+
+build CMakeFiles/TimeAnalysis.dir/Index/IndexProgram.cpp.obj: CXX_COMPILER__TimeAnalysis_Debug C$:/Users/Anna/coursework4/Index/IndexProgram.cpp || cmake_object_order_depends_target_TimeAnalysis
+  DEP_FILE = CMakeFiles\TimeAnalysis.dir\Index\IndexProgram.cpp.obj.d
+  FLAGS = -g -std=gnu++17
+  INCLUDES = -IC:/Users/Anna/coursework4/. -IC:/Users/Anna/coursework4/.idea -IC:/Users/Anna/coursework4/Client -IC:/Users/Anna/coursework4/Server -IC:/Users/Anna/Downloads/asio-1.28.0/asio-1.28.0/include -IC:/Users/Anna/Downloads/cereal-master/cereal-master/include/cereal
+  OBJECT_DIR = CMakeFiles\TimeAnalysis.dir
+  OBJECT_FILE_DIR = CMakeFiles\TimeAnalysis.dir\Index
+
+build CMakeFiles/TimeAnalysis.dir/TimeAnalysis.cpp.obj: CXX_COMPILER__TimeAnalysis_Debug C$:/Users/Anna/coursework4/TimeAnalysis.cpp || cmake_object_order_depends_target_TimeAnalysis
+  DEP_FILE = CMakeFiles\TimeAnalysis.dir\TimeAnalysis.cpp.obj.d
+  FLAGS = -g -std=gnu++17
+  INCLUDES = -IC:/Users/Anna/coursework4/. -IC:/Users/Anna/coursework4/.idea -IC:/Users/Anna/coursework4/Client -IC:/Users/Anna/coursework4/Server -IC:/Users/Anna/Downloads/asio-1.28.0/asio-1.28.0/include -IC:/Users/Anna/Downloads/cereal-master/cereal-master/include/cereal
+  OBJECT_DIR = CMakeFiles\TimeAnalysis.dir
+  OBJECT_FILE_DIR = CMakeFiles\TimeAnalysis.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target TimeAnalysis
+
+
+#############################################
+# Link the executable TimeAnalysis.exe
+
+build TimeAnalysis.exe: CXX_EXECUTABLE_LINKER__TimeAnalysis_Debug CMakeFiles/TimeAnalysis.dir/Index/IndexProgram.cpp.obj CMakeFiles/TimeAnalysis.dir/TimeAnalysis.cpp.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lstdc++fs -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = CMakeFiles\TimeAnalysis.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = TimeAnalysis.exe
+  TARGET_IMPLIB = libTimeAnalysis.dll.a
+  TARGET_PDB = TimeAnalysis.exe.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target Client
 
 
@@ -145,6 +186,8 @@ build Client: phony Client.exe
 
 build Server: phony Server.exe
 
+build TimeAnalysis: phony TimeAnalysis.exe
+
 # =============================================================================
 # Folder targets.
 
@@ -153,7 +196,7 @@ build Server: phony Server.exe
 #############################################
 # Folder: C:/Users/Anna/coursework4/cmake-build-debug
 
-build all: phony Client.exe Server.exe
+build all: phony TimeAnalysis.exe Client.exe Server.exe
 
 # =============================================================================
 # Built-in targets
