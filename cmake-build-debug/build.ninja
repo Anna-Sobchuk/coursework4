@@ -116,6 +116,47 @@ build Client.exe: CXX_EXECUTABLE_LINKER__Client_Debug CMakeFiles/Client.dir/Clie
   TARGET_PDB = Client.exe.dbg
 
 # =============================================================================
+# Object build statements for EXECUTABLE target Tests
+
+
+#############################################
+# Order-only phony target for Tests
+
+build cmake_object_order_depends_target_Tests: phony || CMakeFiles/Tests.dir
+
+build CMakeFiles/Tests.dir/Tests/IndexerTest.cpp.obj: CXX_COMPILER__Tests_Debug C$:/Users/Anna/coursework4/Tests/IndexerTest.cpp || cmake_object_order_depends_target_Tests
+  DEP_FILE = CMakeFiles\Tests.dir\Tests\IndexerTest.cpp.obj.d
+  FLAGS = -g -std=gnu++17
+  INCLUDES = -IC:/Users/Anna/coursework4/. -IC:/Users/Anna/coursework4/.idea -IC:/Users/Anna/coursework4/Client -IC:/Users/Anna/coursework4/Server -IC:/Users/Anna/Downloads/asio-1.28.0/asio-1.28.0/include -IC:/Users/Anna/Downloads/cereal-master/cereal-master/include/cereal
+  OBJECT_DIR = CMakeFiles\Tests.dir
+  OBJECT_FILE_DIR = CMakeFiles\Tests.dir\Tests
+
+build CMakeFiles/Tests.dir/Index/IndexProgram.cpp.obj: CXX_COMPILER__Tests_Debug C$:/Users/Anna/coursework4/Index/IndexProgram.cpp || cmake_object_order_depends_target_Tests
+  DEP_FILE = CMakeFiles\Tests.dir\Index\IndexProgram.cpp.obj.d
+  FLAGS = -g -std=gnu++17
+  INCLUDES = -IC:/Users/Anna/coursework4/. -IC:/Users/Anna/coursework4/.idea -IC:/Users/Anna/coursework4/Client -IC:/Users/Anna/coursework4/Server -IC:/Users/Anna/Downloads/asio-1.28.0/asio-1.28.0/include -IC:/Users/Anna/Downloads/cereal-master/cereal-master/include/cereal
+  OBJECT_DIR = CMakeFiles\Tests.dir
+  OBJECT_FILE_DIR = CMakeFiles\Tests.dir\Index
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target Tests
+
+
+#############################################
+# Link the executable Tests.exe
+
+build Tests.exe: CXX_EXECUTABLE_LINKER__Tests_Debug CMakeFiles/Tests.dir/Tests/IndexerTest.cpp.obj CMakeFiles/Tests.dir/Index/IndexProgram.cpp.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lstdc++fs -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = CMakeFiles\Tests.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = Tests.exe
+  TARGET_IMPLIB = libTests.dll.a
+  TARGET_PDB = Tests.exe.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target Server
 
 
@@ -186,6 +227,8 @@ build Client: phony Client.exe
 
 build Server: phony Server.exe
 
+build Tests: phony Tests.exe
+
 build TimeAnalysis: phony TimeAnalysis.exe
 
 # =============================================================================
@@ -196,7 +239,7 @@ build TimeAnalysis: phony TimeAnalysis.exe
 #############################################
 # Folder: C:/Users/Anna/coursework4/cmake-build-debug
 
-build all: phony TimeAnalysis.exe Client.exe Server.exe
+build all: phony TimeAnalysis.exe Client.exe Tests.exe Server.exe
 
 # =============================================================================
 # Built-in targets

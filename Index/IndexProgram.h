@@ -7,10 +7,11 @@
 
 namespace Index {
     using Dictionary = std::unordered_map<std::string, std::unordered_set<std::string>>;
-    auto &GetDictionary();
+    Dictionary& GetDictionary();
     void Add(const std::string& word, const std::string& file);
     void IndexFilesInRange(const std::vector<std::string>& files);
     std::unordered_set<std::string> FindFilesForWord(const std::string& word);
+    std::vector<std::string> FindFilesContainingAllWords(const std::vector<std::string>& files,const std::vector<std::string>& wordsToFind);
 }
 
 namespace Indexer {
@@ -18,7 +19,7 @@ namespace Indexer {
     RunIndexer(const std::string& rootDirectory, const std::vector<std::string>& wordsToFind, int numThreads = 16);
 }
 
-namespace FileManager {
+namespace Manager {
     std::vector<std::string> GetAllFiles(const std::string &root, int numThreads = 16);
 }
 #endif //COURSEWORK4_INDEXPROGRAM_H

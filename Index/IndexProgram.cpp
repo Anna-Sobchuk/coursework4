@@ -9,7 +9,7 @@
 #include <thread>
 #include <atomic>
 
-namespace FileManager {
+namespace Manager {
     std::mutex fileMutex;
 
     std::vector<std::string> GetAllFiles(const std::string& root, int numThreads = 16) {
@@ -17,14 +17,12 @@ namespace FileManager {
 
         std::vector<std::vector<std::string>> fileChunks(numThreads);
 
-        // Fill file chunks for parallel processing
         int index = 0;
         for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
             fileChunks[index % numThreads].push_back(entry.path().string());
             ++index;
         }
 
-        // Process file chunks in parallel
         std::vector<std::thread> threads;
         for (int i = 0; i < numThreads; ++i) {
             threads.emplace_back([&, i]() {
@@ -46,7 +44,7 @@ namespace FileManager {
 namespace Index {
     using Dictionary = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
-    auto& GetDictionary() {
+    Dictionary& GetDictionary() {
         static Dictionary dictionary;
         return dictionary;
     }
@@ -76,6 +74,12 @@ namespace Index {
     void IndexFilesInRange(const std::vector<std::string>& files) {
         for (const auto& file : files) {
             std::ifstream ifs(file);
+
+            if (!ifs.is_open()) {
+                //std::cerr << "Error opening file: " << file << std::endl;
+                continue;
+            }
+
             std::stringstream buffer;
             buffer << ifs.rdbuf();
             std::string text = buffer.str();
@@ -110,12 +114,10 @@ namespace Index {
                     break;
                 }
             }
-
             if (foundAllWords) {
                 filesContainingAllWords.push_back(file);
             }
         }
-
         return filesContainingAllWords;
     }
 }
@@ -124,17 +126,14 @@ namespace Indexer {
 
     std::vector<std::string>
     RunIndexer(const std::string& rootDirectory,  const std::vector<std::string>& wordsToFind, int numThreads = 16) {
-        // Find all files in the directory
-        std::vector<std::string> files = FileManager::GetAllFiles(rootDirectory, numThreads);
 
+        std::vector<std::string> files = Manager::GetAllFiles(rootDirectory, numThreads);
 
-        // Divide files into chunks for parallel processing
         std::vector<std::vector<std::string>> fileChunks(numThreads);
         for (size_t i = 0; i < files.size(); ++i) {
             fileChunks[i % numThreads].push_back(files[i]);
         }
 
-        // Create threads for indexing
         std::vector<std::thread> threads;
         for (int i = 0; i < numThreads; ++i) {
             threads.emplace_back([&, i]() {
@@ -142,20 +141,16 @@ namespace Indexer {
             });
         }
 
-        // Wait for all threads to finish
         for (auto& thread : threads) {
             thread.join();
         }
 
-        // Create a map to store word to file mappings
         std::unordered_map<std::string, std::unordered_set<std::string>> wordFilesMap;
         for (const auto& word : wordsToFind) {
             auto wordFiles = Index::FindFilesForWord(word);
             wordFilesMap[word] = wordFiles;
         }
-
         std::vector<std::string> filesContainingAllWords = Index::FindFilesContainingAllWords(files, wordsToFind);
-
 
         return filesContainingAllWords;
     }

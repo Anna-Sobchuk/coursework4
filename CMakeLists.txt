@@ -24,6 +24,9 @@ set(
         Client/ClientProgram.cpp
         Server/ServerProgram.cpp
         Index/IndexProgram.cpp
+        Index/IndexProgram.h
+        TimeAnalysis.cpp
+        Tests/IndexerTest.cpp
         README.md
         Schema.jpg
 )
@@ -43,3 +46,7 @@ add_executable(TimeAnalysis
         )
 
 set(CMAKE_CXX_STANDARD_LIBRARIES "-lstdc++fs ${CMAKE_CXX_STANDARD_LIBRARIES}")
+
+
+# Catch2 integration for testing
+add_executable(Tests Tests/IndexerTest.cpp Index/IndexProgram.cpp)

@@ -1,5 +1,6 @@
 C:/Users/Anna/coursework4/cmake-build-debug/CMakeFiles/TimeAnalysis.dir
 C:/Users/Anna/coursework4/cmake-build-debug/CMakeFiles/Client.dir
+C:/Users/Anna/coursework4/cmake-build-debug/CMakeFiles/Tests.dir
 C:/Users/Anna/coursework4/cmake-build-debug/CMakeFiles/Server.dir
 C:/Users/Anna/coursework4/cmake-build-debug/CMakeFiles/edit_cache.dir
 C:/Users/Anna/coursework4/cmake-build-debug/CMakeFiles/rebuild_cache.dir

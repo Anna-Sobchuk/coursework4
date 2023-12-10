@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_set>
 #include "Index/IndexProgram.h"
-std::atomic<bool> shouldStop(false); // Global variable to signal server shutdown
+std::atomic<bool> shouldStop(false);
 
 
 std::vector<std::string> receiveWords(asio::ip::tcp::socket& socket) {
@@ -50,7 +50,6 @@ void handleClient(asio::ip::tcp::socket socket) {
             std::vector<std::string> words = receiveWords(socket);
 
             std::string rootDirectory = "C://Users//Anna//coursework4//mdb//test//neg";
-            // Run indexing on the words and get the updated dictionary
 
             // Check for disconnect message
             if (words.size() == 1 && words[0] == "DISCONNECT") {
@@ -77,9 +76,9 @@ int main() {
     asio::ip::tcp::acceptor acceptor(ioService, asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), 5001));
 
     std::cout << "Server started at port 5001" << std::endl;
-    std::vector<std::thread> threads; // Keep track of the threads
+    std::vector<std::thread> threads;
 
-    const int MAX_CLIENTS = 2; // Define maximum number of clients
+    const int MAX_CLIENTS = 2;
     int clientCount = 0;
 
     while (!shouldStop) {
