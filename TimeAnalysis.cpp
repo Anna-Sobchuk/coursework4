@@ -44,7 +44,7 @@ int main() {
     //std::cout << "Enter directory with files (if empty - C://Users//Anna//coursework4//mdb//train//neg): ";
     //std::getline(std::cin, rootDirectory);
     if (rootDirectory.empty()) {
-        rootDirectory = "C://Users//Anna//coursework4//mdb//train//neg";
+        rootDirectory = "C://Users//Anna//coursework4//mdb";
     }
 
     std::vector<std::string> indexInOneThread;

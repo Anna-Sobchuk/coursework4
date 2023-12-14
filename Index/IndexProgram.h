@@ -12,6 +12,8 @@ namespace Index {
     void IndexFilesInRange(const std::vector<std::string>& files);
     std::unordered_set<std::string> FindFilesForWord(const std::string& word);
     std::vector<std::string> FindFilesContainingAllWords(const std::vector<std::string>& files,const std::vector<std::string>& wordsToFind);
+    void SerializeIndex(const std::string& filename);
+    void DeserializeIndex(const std::string& filename);
 }
 
 namespace Indexer {

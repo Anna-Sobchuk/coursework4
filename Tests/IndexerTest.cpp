@@ -1,4 +1,6 @@
 #define CATCH_CONFIG_MAIN
+
+#include <filesystem>
 #include "catch.hpp"
 #include "Index/IndexProgram.h"
 
@@ -167,4 +169,38 @@ TEST_CASE("IndexFilesInRange handles unreal files") {
         auto filesForWord = Index::FindFilesForWord(file);
         REQUIRE(filesForWord.empty());
     }
+}
+
+TEST_CASE("SerializeIndex saves index to file") {
+    Index::Add("test", "file1.txt");
+    Index::Add("sample", "file2.txt");
+
+    Index::SerializeIndex("test_index.bin");
+
+    REQUIRE(std::filesystem::exists("test_index.bin"));
+}
+
+TEST_CASE("DeserializeIndex loads index from file") {
+    Index::Add("test", "file1.txt");
+    Index::Add("sample", "file2.txt");
+
+    Index::SerializeIndex("test_index_to_load.bin");
+
+    Index::GetDictionary().clear();
+
+    Index::DeserializeIndex("test_index_to_load.bin");
+
+    REQUIRE(Index::FindFilesForWord("test").count("file1.txt") == 1);
+    REQUIRE(Index::FindFilesForWord("sample").count("file2.txt") == 1);
+}
+
+TEST_CASE("File gets deleted") {
+    std::ofstream testFile("test_file.txt");
+    testFile.close();
+
+    REQUIRE(std::filesystem::exists("test_file.txt"));
+
+    std::filesystem::remove("test_file.txt");
+
+    REQUIRE_FALSE(std::filesystem::exists("test_file.txt"));
 }

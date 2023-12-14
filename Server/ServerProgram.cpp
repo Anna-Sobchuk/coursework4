@@ -4,6 +4,9 @@
 #include <vector>
 #include <unordered_set>
 #include "Index/IndexProgram.h"
+#include <csignal>
+#include <filesystem>
+
 std::atomic<bool> shouldStop(false);
 
 
@@ -49,7 +52,7 @@ void handleClient(asio::ip::tcp::socket socket) {
         while (true) {
             std::vector<std::string> words = receiveWords(socket);
 
-            std::string rootDirectory = "C://Users//Anna//coursework4//mdb//test//neg";
+            std::string rootDirectory = "C://Users//Anna//coursework4//mdb//test"; // put this for the spead, but can be changed
 
             // Check for disconnect message
             if (words.size() == 1 && words[0] == "DISCONNECT") {
@@ -81,13 +84,13 @@ int main() {
     const int MAX_CLIENTS = 2;
     int clientCount = 0;
 
-    while (!shouldStop) {
+    while (!shouldStop) { // if 2 clients had been handles, then close the server
         asio::ip::tcp::socket socket(ioService);
         acceptor.listen();
         acceptor.accept(socket);
         std::cout << "New client was connected" << std::endl;
 
-        // Start a new thread for each client
+        // Start a new thread for each client so that they do not interfere
         threads.emplace_back(handleClient, std::move(socket));
 
         ++clientCount;
@@ -100,6 +103,10 @@ int main() {
     for (auto& thread : threads) {
         thread.join();
     }
+
+    //Delete saved index file before shutting down the server
+    std::filesystem::remove("IndSaved.bin");
+    std::cout << "Index file deleted. Server shutting down." << std::endl;
 
     return 0;
 }

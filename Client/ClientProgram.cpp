@@ -53,6 +53,7 @@ std::vector<std::string> GetWords() {
     std::string input;
     std::getline(std::cin, input);
 
+    //clean them from the extras, leave only words. (problem: apple and apples are different words in index)
     std::regex word_regex(R"([^(0-9|a-z|A-Z|')]+)");
     std::sregex_token_iterator iter(input.begin(), input.end(), word_regex, -1);
     std::sregex_token_iterator end;
@@ -62,7 +63,7 @@ std::vector<std::string> GetWords() {
         std::string word = iter->str();
         if (!word.empty()) {
             std::transform(word.begin(), word.end(), word.begin(), ::tolower);
-            words.push_back(word);
+            words.push_back(word); //saving words in a vector for the further operations
         }
     }
 
@@ -84,6 +85,7 @@ void SendDisconnectMessage(asio::ip::tcp::socket& socket) {
 
 int main() {
     try {
+        //connecting to server
         asio::io_context io_context;
         asio::ip::tcp::socket socket(io_context);
 
