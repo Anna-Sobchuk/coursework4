@@ -6,9 +6,11 @@
 #include "Index/IndexProgram.h"
 #include <csignal>
 #include <filesystem>
+#include <queue>
 
-std::atomic<bool> shouldStop(false);
-
+std::mutex mutex_;
+std::condition_variable condition_;
+std::queue<asio::ip::tcp::socket> socketQueue;
 
 std::vector<std::string> receiveWords(asio::ip::tcp::socket& socket) {
     // Read the size of the vector
@@ -45,14 +47,14 @@ void sendMessage(asio::ip::tcp::socket& socket, const std::vector<std::string>& 
     }
 }
 
-void handleClient(asio::ip::tcp::socket socket) {
+void handleClient(asio::ip::tcp::socket socketToProcess) {
     try {
         std::cout << "Client thread started" << std::endl;
 
         while (true) {
-            std::vector<std::string> words = receiveWords(socket);
+            std::vector<std::string> words = receiveWords(socketToProcess);
 
-            std::string rootDirectory = "C://Users//Anna//coursework4//mdb//test"; // put this for the spead, but can be changed
+            std::string rootDirectory = "C://Users//Anna//coursework4//mdb//test"; // put this for the speed, but can be changed
 
             // Check for disconnect message
             if (words.size() == 1 && words[0] == "DISCONNECT") {
@@ -65,9 +67,9 @@ void handleClient(asio::ip::tcp::socket socket) {
             std::cout << "Indexing finished" << std::endl;
 
             // Send a response back to the client
-            sendMessage(socket, files);
+            sendMessage(socketToProcess, files);
         }
-    } catch (const asio::system_error& e) {
+    } catch (const asio::system_error &e) {
         if (e.code() != asio::error::eof) {
             std::cerr << "Error handling client: " << e.what() << std::endl;
         }
@@ -80,32 +82,45 @@ int main() {
 
     std::cout << "Server started at port 5001" << std::endl;
     std::vector<std::thread> threads;
+    const int THREAD_POOL_SIZE = 4;
 
-    const int MAX_CLIENTS = 2;
-    int clientCount = 0;
+    for (int i = 0; i < THREAD_POOL_SIZE; ++i) {
+        threads.emplace_back([&ioService]() {
+            while (true) {
+                asio::ip::tcp::socket socket(ioService);
+                {
+                    std::unique_lock<std::mutex> lock(mutex_);
+                    condition_.wait(lock, [&]() { return !socketQueue.empty(); });
 
-    while (!shouldStop) { // if 2 clients had been handles, then close the server
+                    socket = std::move(socketQueue.front());
+                    socketQueue.pop();
+                }
+
+                handleClient(std::move(socket));
+            }
+        });
+    }
+
+    while (true) {
         asio::ip::tcp::socket socket(ioService);
         acceptor.listen();
         acceptor.accept(socket);
         std::cout << "New client was connected" << std::endl;
 
-        // Start a new thread for each client so that they do not interfere
-        threads.emplace_back(handleClient, std::move(socket));
-
-        ++clientCount;
-        if (clientCount >= MAX_CLIENTS) {
-            shouldStop = true; // Reached maximum clients, set the termination condition
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            socketQueue.push(std::move(socket));
         }
+
+        condition_.notify_one(); // Notify a waiting thread to process the client
     }
 
-    // Wait for all threads to finish
     for (auto& thread : threads) {
         thread.join();
     }
 
     //Delete saved index file before shutting down the server
-    std::filesystem::remove("IndSaved.bin");
+    std::filesystem::remove("Saved.bin");
     std::cout << "Index file deleted. Server shutting down." << std::endl;
 
     return 0;

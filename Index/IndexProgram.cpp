@@ -51,8 +51,8 @@ namespace Index {
         return dictionary;
     }
 
-    void Add(const std::string& word, const std::string& file) { // adding a new word to index
-        std::string lowercaseWord = word;
+    void Add(std::string& word, const std::string& file) { // adding a new word to index
+        std::string lowercaseWord = std::move(word);
         std::transform(lowercaseWord.begin(), lowercaseWord.end(), lowercaseWord.begin(), ::tolower);
 
         auto& dictionary = GetDictionary();
@@ -127,7 +127,7 @@ namespace Index {
     }
 
     void SerializeIndex(const std::string& filename) { // save index
-        std::lock_guard<std::mutex> lock(mutex);
+        //std::lock_guard<std::mutex> lock(mutex);
         std::ofstream outputFile(filename, std::ios::binary | std::ios::trunc);
         if (outputFile.is_open()) {
             auto& dictionary = GetDictionary();
@@ -153,7 +153,7 @@ namespace Index {
 
 
     void DeserializeIndex(const std::string& filename) { //open local index
-        std::lock_guard<std::mutex> lock(mutex);
+        //std::lock_guard<std::mutex> lock(mutex);
         std::ifstream file(filename, std::ios::binary);
         if (file.is_open()) {
             Dictionary dictionary;
@@ -193,7 +193,7 @@ namespace Indexer {
         std::vector<std::string> files = Manager::GetAllFiles(rootDirectory, numThreads);
 
 
-        std::string indexFileName = "C://Users//Anna//coursework4//Index//IndSaved.bin";
+        std::string indexFileName = "C://Users//Anna//coursework4//Index//Saved.bin";
         if (std::filesystem::exists(indexFileName)) {
             // Deserialize the index if it exists
             Index::DeserializeIndex(indexFileName);
